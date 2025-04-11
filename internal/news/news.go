@@ -1,4 +1,4 @@
-package stocks
+package news
 
 import (
 	"encoding/json"
@@ -6,12 +6,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/akhlexe/stocknews-api/internal/ai"
 )
 
-type NewsArticle struct {
+type Article struct {
 	Title       string   `json:"title"`
 	URL         string   `json:"url"`
 	Summary     string   `json:"summary"`
@@ -38,9 +37,7 @@ type apiResponse struct {
 	} `json:"feed"`
 }
 
-func GetNewsByTicker(ticker string) ([]NewsArticle, error) {
-	apiKey := "YOUR_API_KEY"
-
+func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("missing ALPHAVANTAGE_API_KEY environment variable")
 	}
@@ -69,7 +66,7 @@ func GetNewsByTicker(ticker string) ([]NewsArticle, error) {
 		return nil, fmt.Errorf("error decoding API response: %w", err)
 	}
 
-	var articles []NewsArticle
+	var articles []Article
 
 	for _, item := range result.Feed {
 		var tickers []string
@@ -77,7 +74,7 @@ func GetNewsByTicker(ticker string) ([]NewsArticle, error) {
 			tickers = append(tickers, t.Ticker)
 		}
 
-		articles = append(articles, NewsArticle{
+		articles = append(articles, Article{
 			Title:       item.Title,
 			URL:         item.URL,
 			Summary:     item.Summary,
@@ -104,18 +101,4 @@ func GetNewsByTicker(ticker string) ([]NewsArticle, error) {
 	}
 
 	return articles, nil
-}
-
-func FilterByQuery(articles []NewsArticle, query string) []NewsArticle {
-	var result []NewsArticle
-
-	query = strings.ToLower(query)
-	for _, a := range articles {
-		if strings.Contains(strings.ToLower(a.Title), query) ||
-			strings.Contains(strings.ToLower(a.Summary), query) {
-			result = append(result, a)
-		}
-	}
-
-	return result
 }

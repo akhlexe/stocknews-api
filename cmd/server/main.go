@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/akhlexe/stocknews-api/internal/server"
+	server "github.com/akhlexe/stocknews-api/internal/api"
 )
 
 func main() {
+
 	server.Run()
 }
