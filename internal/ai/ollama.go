@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
 type OllamaRequest struct {
@@ -21,6 +22,9 @@ type OllamaResponse struct {
 }
 
 func GenerateSummary(prompt string) (string, error) {
+
+	ollamaUrl := GetOllamaUrl()
+
 	log.Println("🧠 Calling Ollama for summary...")
 
 	payload := OllamaRequest{
@@ -32,7 +36,7 @@ func GenerateSummary(prompt string) (string, error) {
 	body, _ := json.Marshal(payload)
 	log.Printf("📤 Prompt: %s\n", prompt)
 
-	resp, err := http.Post("http://localhost:11434/api/generate", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(ollamaUrl+"/api/generate", "application/json", bytes.NewReader(body))
 	if err != nil {
 		log.Println("❌ Ollama request failed:", err)
 		return "", err
@@ -53,4 +57,36 @@ func GenerateSummary(prompt string) (string, error) {
 
 	log.Println("📝 AI Summary done")
 	return res.Response, nil
+}
+
+func SummarizeArticles(combined string) (string, error) {
+	ollamaUrl := GetOllamaUrl()
+
+	payload := OllamaRequest{
+		Model:  "llama3",
+		Prompt: fmt.Sprintf("Summarize the following stock market news: \n\n%s", combined),
+		Stream: false,
+	}
+
+	data, _ := json.Marshal(payload)
+
+	resp, err := http.Post(ollamaUrl+"/api/generate", "application/json", bytes.NewBuffer(data))
+
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	var result OllamaResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+
+	return result.Response, nil
+}
+
+func GetOllamaUrl() string {
+	return os.Getenv("OLLAMA_URL")
 }

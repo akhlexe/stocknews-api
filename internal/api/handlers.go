@@ -1,9 +1,12 @@
 package api
 
 import (
+	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/akhlexe/stocknews-api/internal/ai"
 	"github.com/akhlexe/stocknews-api/internal/cache"
 	"github.com/akhlexe/stocknews-api/internal/filter"
 	"github.com/akhlexe/stocknews-api/internal/news"
@@ -13,7 +16,7 @@ import (
 func Run() {
 	router := gin.Default()
 
-	apiKey := "YOUR_API_KEY"
+	apiKey := os.Getenv("ALPHAVANTAGE_API_KEY")
 	cache := cache.NewCache(10 * time.Minute)
 	fetcher := news.NewFetcher(apiKey, cache)
 
@@ -31,11 +34,30 @@ func Run() {
 func handleNews(c *gin.Context, fetcher *news.Fetcher) {
 	ticker := c.Param("ticker")
 	query := c.Query("q")
+	summarize := c.DefaultQuery("summarize", "false") == "true"
 
 	articles, err := fetcher.FetchNews(ticker)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if summarize {
+		var allArticles string
+		for _, a := range articles {
+			allArticles += a.Title + ":" + a.Summary + "\n"
+		}
+
+		summary, err := ai.SummarizeArticles(allArticles)
+		if err != nil {
+			log.Println("❌ Failed to generate AI summary:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		log.Println("✅ AI summary generated successfully")
+		c.JSON(http.StatusOK, gin.H{"ticker": ticker, "summary": summary})
 		return
 	}
 

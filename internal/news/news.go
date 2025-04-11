@@ -3,11 +3,8 @@ package news
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
-
-	"github.com/akhlexe/stocknews-api/internal/ai"
 )
 
 type Article struct {
@@ -84,20 +81,6 @@ func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
 			Sentiment:   item.Sentiment,
 			Tickers:     tickers,
 		})
-	}
-
-	if len(articles) > 0 {
-		first := articles[0]
-		summaryPrompt := fmt.Sprintf("Summarize this news article in 1-2 lines: \n\nTitle: %s\n\n%s", first.Title, first.Summary)
-
-		summary, err := ai.GenerateSummary(summaryPrompt)
-		if err != nil {
-			log.Println("❌ Failed to generate AI summary:", err)
-			return nil, fmt.Errorf("error generating summary: %w", err)
-		} else {
-			log.Println("✅ AI summary generated successfully")
-			articles[0].Summary = summary
-		}
 	}
 
 	return articles, nil
