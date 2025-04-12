@@ -3,40 +3,43 @@ package api
 import (
 	"log"
 	"net/http"
-	"os"
-	"time"
 
 	"github.com/akhlexe/stocknews-api/internal/ai"
-	"github.com/akhlexe/stocknews-api/internal/cache"
 	"github.com/akhlexe/stocknews-api/internal/filter"
 	"github.com/akhlexe/stocknews-api/internal/news"
 	"github.com/gin-gonic/gin"
 )
 
-func Run() {
-	router := gin.Default()
+type Server struct {
+	MultiFetcher *news.MultiFetcher
+}
 
-	apiKey := os.Getenv("ALPHAVANTAGE_API_KEY")
-	cache := cache.NewCache(10 * time.Minute)
-	fetcher := news.NewFetcher(apiKey, cache)
+func NewServer(multiFetcher *news.MultiFetcher) *Server {
+	return &Server{
+		MultiFetcher: multiFetcher,
+	}
+}
+
+func (s *Server) Run() {
+	router := gin.Default()
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	router.GET("/news/:ticker", func(c *gin.Context) {
-		handleNews(c, fetcher)
+		handleNews(c, s.MultiFetcher)
 	})
 
 	router.Run(":8080")
 }
 
-func handleNews(c *gin.Context, fetcher *news.Fetcher) {
+func handleNews(c *gin.Context, fetcher *news.MultiFetcher) {
 	ticker := c.Param("ticker")
 	query := c.Query("q")
 	summarize := c.DefaultQuery("summarize", "false") == "true"
 
-	articles, err := fetcher.FetchNews(ticker)
+	articles, err := fetcher.GetNewsByTicker(ticker)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
