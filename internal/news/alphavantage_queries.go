@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/akhlexe/stocknews-api/internal/apperrors"
+	"github.com/rs/zerolog/log"
 )
 
 type Article struct {
@@ -36,7 +39,8 @@ type apiResponse struct {
 
 func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("missing ALPHAVANTAGE_API_KEY environment variable")
+		log.Error().Msg("Missing ALPHAVANTAGE_API_KEY environment variable")
+		return nil, fmt.Errorf("%w: missing ALPHAVANTAGE_API_KEY environment variable", apperrors.ErrConfiguration)
 	}
 
 	endpoint := "https://www.alphavantage.co/query"
@@ -49,18 +53,30 @@ func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
 
 	resp, err := http.Get(fullUrl)
 	if err != nil {
-		return nil, fmt.Errorf("error resqueting AlphaVantage: %w", err)
+		log.Error().Err(err).Str("url", fullUrl).Msg("Error requesting AlphaVantage")
+		return nil, fmt.Errorf("%w: error resqueting AlphaVantage: %v", apperrors.ErrServiceUnavailable, err)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API error: status code %d", resp.StatusCode)
+		log.Error().
+			Int("status_code", resp.StatusCode).
+			Str("ticker", ticker).
+			Msg("Error requesting AlphaVantage")
+
+		return nil, fmt.Errorf("%w: Alphavantage API error: status code %d", apperrors.ErrServiceUnavailable, resp.StatusCode)
 	}
 
 	var result apiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding API response: %w", err)
+		log.Error().Err(err).Str("ticker", ticker).Msg("Error decoding AlphaVantage API response")
+		return nil, fmt.Errorf("%w: error decoding API response: %v", apperrors.ErrInternal, err)
+	}
+
+	if len(result.Feed) == 0 {
+		log.Warn().Str("ticker", ticker).Msg("No news articles found for the given ticker")
+		return nil, apperrors.ErrNotFound
 	}
 
 	var articles []Article

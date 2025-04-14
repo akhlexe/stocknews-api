@@ -2,9 +2,9 @@ package news
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/akhlexe/stocknews-api/internal/cache"
+	"github.com/rs/zerolog/log"
 )
 
 type AlphaVantageFetcher struct {
@@ -26,7 +26,10 @@ func (f *AlphaVantageFetcher) GetNewsByTicker(ticker string) ([]Article, error) 
 		return cached.([]Article), nil
 	}
 
-	log.Printf("🌍 Fetching news from API for %s", ticker)
+	log.Info().
+		Str("ticker", ticker).
+		Str("method", "GetNewsByTicker").
+		Msgf("🌍 Fetching news from API for %s", ticker)
 
 	resp, err := GetNewsByTicker(f.APIKey, ticker)
 
