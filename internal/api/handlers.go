@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -87,12 +88,20 @@ func handleNews(c *gin.Context, fetcher *news.MultiFetcher) {
 		return
 	}
 
-	articles, err := fetcher.GetNewsByTicker(ticker)
+	// add a timeout to the context for the fetcher call
+	fetchCtx, cancelFetch := context.WithTimeout(c, 10*time.Second)
+	defer cancelFetch() // Important: ensure cancel is called to release resources
+
+	articles, err := fetcher.GetNewsByTicker(fetchCtx, ticker)
 
 	if err != nil {
 		requestLog.Error().Err(err).Msg("Error processing news request")
 
-		if errors.Is(err, apperrors.ErrNotFound) {
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Request timed out."})
+		} else if errors.Is(err, context.Canceled) {
+			c.JSON(http.StatusRequestTimeout, gin.H{"error": "Request canceled."})
+		} else if errors.Is(err, apperrors.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "No news found for the specified ticker."})
 		} else if errors.Is(err, apperrors.ErrServiceUnavailable) {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "External service unavailable."})
@@ -116,10 +125,21 @@ func handleNews(c *gin.Context, fetcher *news.MultiFetcher) {
 			return
 		}
 
-		summary, err := ai.SummarizeArticles(allArticles)
+		aiCtx, cancelAI := context.WithTimeout(c, 10*time.Second)
+		defer cancelAI() // Important: ensure cancel is called to release resources
+
+		summary, err := ai.SummarizeArticles(aiCtx, allArticles)
 		if err != nil {
 			requestLog.Error().Err(err).Msg("Failed to generate AI summary")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			if errors.Is(err, context.DeadlineExceeded) {
+				c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Request timed out."})
+			} else if errors.Is(err, context.Canceled) {
+				c.JSON(http.StatusRequestTimeout, gin.H{"error": "Request canceled."})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+
 			return
 		}
 

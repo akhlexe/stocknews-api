@@ -2,6 +2,7 @@ package ai
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -59,7 +60,7 @@ func GenerateSummary(prompt string) (string, error) {
 	return res.Response, nil
 }
 
-func SummarizeArticles(combined string) (string, error) {
+func SummarizeArticles(ctx context.Context, combined string) (string, error) {
 	ollamaUrl := GetOllamaUrl()
 
 	payload := OllamaRequest{

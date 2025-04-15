@@ -1,6 +1,7 @@
 package news
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -37,7 +38,7 @@ type apiResponse struct {
 	} `json:"feed"`
 }
 
-func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
+func GetNewsByTicker(ctx context.Context, apiKey string, ticker string) ([]Article, error) {
 	if apiKey == "" {
 		log.Error().Msg("Missing ALPHAVANTAGE_API_KEY environment variable")
 		return nil, fmt.Errorf("%w: missing ALPHAVANTAGE_API_KEY environment variable", apperrors.ErrConfiguration)
@@ -51,8 +52,22 @@ func GetNewsByTicker(apiKey string, ticker string) ([]Article, error) {
 
 	fullUrl := fmt.Sprintf("%s?%s", endpoint, params.Encode())
 
-	resp, err := http.Get(fullUrl)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullUrl, nil)
 	if err != nil {
+		log.Error().Err(err).Str("url", fullUrl).Msg("Error creating AlphaVantage request")
+		return nil, fmt.Errorf("%w: error creating AlphaVantage request: %v", apperrors.ErrServiceUnavailable, err)
+	}
+
+	client := http.DefaultClient
+
+	resp, err := client.Do(req)
+	if err != nil {
+
+		if ctx.Err() != nil {
+			log.Warn().Err(ctx.Err()).Str("url", fullUrl).Msg("Context error requesting AlphaVantage")
+			return nil, ctx.Err()
+		}
+
 		log.Error().Err(err).Str("url", fullUrl).Msg("Error requesting AlphaVantage")
 		return nil, fmt.Errorf("%w: error resqueting AlphaVantage: %v", apperrors.ErrServiceUnavailable, err)
 	}

@@ -1,5 +1,7 @@
 package news
 
+import "context"
+
 type MultiFetcher struct {
 	Providers []Provider
 }
@@ -10,11 +12,11 @@ func NewMultiFetcher(providers ...Provider) *MultiFetcher {
 	}
 }
 
-func (m *MultiFetcher) GetNewsByTicker(ticker string) ([]Article, error) {
+func (m *MultiFetcher) GetNewsByTicker(ctx context.Context, ticker string) ([]Article, error) {
 	var allArticles []Article
 
 	for _, provider := range m.Providers {
-		articles, err := provider.GetNewsByTicker(ticker)
+		articles, err := provider.GetNewsByTicker(ctx, ticker)
 		if err != nil {
 			return nil, err
 		}

@@ -1,6 +1,7 @@
 package news
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -19,7 +20,7 @@ func NewFetcher(apiKey string, cache *cache.Cache) *Fetcher {
 	}
 }
 
-func (f *Fetcher) FetchNews(ticker string) ([]Article, error) {
+func (f *Fetcher) FetchNews(ctx context.Context, ticker string) ([]Article, error) {
 	cacheKey := fmt.Sprintf("news_%s", ticker)
 
 	if cached, ok := f.Cache.Get(cacheKey); ok {
@@ -28,7 +29,7 @@ func (f *Fetcher) FetchNews(ticker string) ([]Article, error) {
 
 	log.Printf("🌍 Fetching news from API for %s", ticker)
 
-	resp, err := GetNewsByTicker(f.APIKey, ticker)
+	resp, err := GetNewsByTicker(ctx, f.APIKey, ticker)
 
 	if err != nil {
 		return nil, fmt.Errorf("error fetching news: %w", err)

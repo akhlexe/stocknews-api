@@ -1,6 +1,7 @@
 package news
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/akhlexe/stocknews-api/internal/cache"
@@ -19,7 +20,7 @@ func NewAlphaVantageFetcher(apiKey string, cache *cache.Cache) *AlphaVantageFetc
 	}
 }
 
-func (f *AlphaVantageFetcher) GetNewsByTicker(ticker string) ([]Article, error) {
+func (f *AlphaVantageFetcher) GetNewsByTicker(ctx context.Context, ticker string) ([]Article, error) {
 	cacheKey := fmt.Sprintf("news_%s", ticker)
 
 	if cached, ok := f.Cache.Get(cacheKey); ok {
@@ -31,7 +32,7 @@ func (f *AlphaVantageFetcher) GetNewsByTicker(ticker string) ([]Article, error) 
 		Str("method", "GetNewsByTicker").
 		Msgf("🌍 Fetching news from API for %s", ticker)
 
-	resp, err := GetNewsByTicker(f.APIKey, ticker)
+	resp, err := GetNewsByTicker(ctx, f.APIKey, ticker)
 
 	if err != nil {
 		return nil, fmt.Errorf("error fetching news: %w", err)

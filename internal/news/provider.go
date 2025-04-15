@@ -1,5 +1,7 @@
 package news
 
+import "context"
+
 type Provider interface {
-	GetNewsByTicker(ticker string) ([]Article, error)
+	GetNewsByTicker(ctx context.Context, ticker string) ([]Article, error)
 }
