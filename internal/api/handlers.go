@@ -74,7 +74,7 @@ func (s *Server) Run() {
 	}
 }
 
-func handleNews(c *gin.Context, fetcher *news.MultiFetcher) {
+func handleNews(c *gin.Context, fetcher news.Provider) {
 	ticker := c.Param("ticker")
 	query := c.Query("q")
 	summarize := c.DefaultQuery("summarize", "false") == "true"

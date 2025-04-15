@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/akhlexe/stocknews-api/internal/news"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFilterByQuery(t *testing.T) {
@@ -33,10 +34,8 @@ func TestFilterByQuery(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			filtered := FilterByQuery(articles, tc.query)
-			if len(filtered) != tc.expected {
-				t.Errorf("Expected %d articles, got %d", tc.expected, len(filtered))
-			}
+			actualResult := FilterByQuery(articles, tc.query)
+			assert.Equal(t, tc.expected, len(actualResult), "Expected %d articles, got %d", tc.expected, len(actualResult))
 		})
 	}
 
