@@ -1,5 +1,3 @@
-# stocknews-api
-
 # Stock News API
 
 A RESTful API service for retrieving financial news about stocks with filtering and summarization capabilities.
