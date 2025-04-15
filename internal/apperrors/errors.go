@@ -10,5 +10,3 @@ var (
 	ErrInternal           = errors.New("internal processing error")
 	ErrConfiguration      = errors.New("application configuration error")
 )
-
-
