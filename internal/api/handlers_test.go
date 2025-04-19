@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/akhlexe/stocknews-api/internal/apperrors"
+	"github.com/akhlexe/stocknews-api/internal/models"
 	"github.com/akhlexe/stocknews-api/internal/news"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func setupTestRouter(fetcher news.Provider) *gin.Engine {
 }
 
 func TestHandleNews(t *testing.T) {
-	samplerArticles := []news.Article{
+	samplerArticles := []models.Article{
 		{Title: "Test Stock Up", Summary: "Good news for TEST", Tickers: []string{"TEST"}},
 		{Title: "TEST Results", Summary: "Quarterly results analysis", Tickers: []string{"TEST"}},
 	}

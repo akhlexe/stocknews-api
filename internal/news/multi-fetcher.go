@@ -1,6 +1,10 @@
 package news
 
-import "context"
+import (
+	"context"
+
+	"github.com/akhlexe/stocknews-api/internal/models"
+)
 
 type MultiFetcher struct {
 	Providers []Provider
@@ -12,8 +16,8 @@ func NewMultiFetcher(providers ...Provider) *MultiFetcher {
 	}
 }
 
-func (m *MultiFetcher) GetNewsByTicker(ctx context.Context, ticker string) ([]Article, error) {
-	var allArticles []Article
+func (m *MultiFetcher) GetNewsByTicker(ctx context.Context, ticker string) ([]models.Article, error) {
+	var allArticles []models.Article
 
 	for _, provider := range m.Providers {
 		articles, err := provider.GetNewsByTicker(ctx, ticker)

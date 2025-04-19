@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/akhlexe/stocknews-api/internal/cache"
+	"github.com/akhlexe/stocknews-api/internal/models"
 )
 
 type Fetcher struct {
@@ -20,11 +21,11 @@ func NewFetcher(apiKey string, cache *cache.Cache) *Fetcher {
 	}
 }
 
-func (f *Fetcher) FetchNews(ctx context.Context, ticker string) ([]Article, error) {
+func (f *Fetcher) FetchNews(ctx context.Context, ticker string) ([]models.Article, error) {
 	cacheKey := fmt.Sprintf("news_%s", ticker)
 
 	if cached, ok := f.Cache.Get(cacheKey); ok {
-		return cached.([]Article), nil
+		return cached.([]models.Article), nil
 	}
 
 	log.Printf("🌍 Fetching news from API for %s", ticker)

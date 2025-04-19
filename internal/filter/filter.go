@@ -3,11 +3,11 @@ package filter
 import (
 	"strings"
 
-	"github.com/akhlexe/stocknews-api/internal/news"
+	"github.com/akhlexe/stocknews-api/internal/models"
 )
 
-func FilterByQuery(articles []news.Article, query string) []news.Article {
-	var result []news.Article
+func FilterByQuery(articles []models.Article, query string) []models.Article {
+	var result []models.Article
 
 	query = strings.ToLower(query)
 	for _, a := range articles {

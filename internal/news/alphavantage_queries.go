@@ -8,19 +8,9 @@ import (
 	"net/url"
 
 	"github.com/akhlexe/stocknews-api/internal/apperrors"
+	"github.com/akhlexe/stocknews-api/internal/models"
 	"github.com/rs/zerolog/log"
 )
-
-type Article struct {
-	Title       string   `json:"title"`
-	URL         string   `json:"url"`
-	Summary     string   `json:"summary"`
-	Image       string   `json:"banner_image"`
-	PublishedAt string   `json:"time_published"`
-	Source      string   `json:"source"`
-	Sentiment   string   `json:"overall_sentiment_label"`
-	Tickers     []string `json:"tickers"`
-}
 
 type apiResponse struct {
 	Items string `json:"items"`
@@ -38,7 +28,7 @@ type apiResponse struct {
 	} `json:"feed"`
 }
 
-func GetNewsByTicker(ctx context.Context, apiKey string, ticker string) ([]Article, error) {
+func GetNewsByTicker(ctx context.Context, apiKey string, ticker string) ([]models.Article, error) {
 	if apiKey == "" {
 		log.Error().Msg("Missing ALPHAVANTAGE_API_KEY environment variable")
 		return nil, fmt.Errorf("%w: missing ALPHAVANTAGE_API_KEY environment variable", apperrors.ErrConfiguration)
@@ -94,7 +84,7 @@ func GetNewsByTicker(ctx context.Context, apiKey string, ticker string) ([]Artic
 		return nil, apperrors.ErrNotFound
 	}
 
-	var articles []Article
+	var articles []models.Article
 
 	for _, item := range result.Feed {
 		var tickers []string
@@ -102,7 +92,7 @@ func GetNewsByTicker(ctx context.Context, apiKey string, ticker string) ([]Artic
 			tickers = append(tickers, t.Ticker)
 		}
 
-		articles = append(articles, Article{
+		articles = append(articles, models.Article{
 			Title:       item.Title,
 			URL:         item.URL,
 			Summary:     item.Summary,

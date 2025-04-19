@@ -3,12 +3,12 @@ package filter
 import (
 	"testing"
 
-	"github.com/akhlexe/stocknews-api/internal/news"
+	"github.com/akhlexe/stocknews-api/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFilterByQuery(t *testing.T) {
-	articles := []news.Article{
+	articles := []models.Article{
 		{Title: "Apple Inc. Announces New Product", Summary: "Apple is launching a new iPhone."},
 		{Title: "Google's Stock Surges", Summary: "Google's stock price has increased."},
 		{Title: "Microsoft's Cloud Services", Summary: "Microsoft is expanding its cloud offerings."},

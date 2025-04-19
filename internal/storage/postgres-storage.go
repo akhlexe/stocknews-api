@@ -3,31 +3,30 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 
-	"github.com/akhlexe/stocknews-api/internal/news"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
 
-type SQLiteStorage struct {
+type PostgresStorage struct {
 	db *sql.DB
 }
 
-func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+func NewPostgresStorage(connectionString string) (*PostgresStorage, error) {
+	db, err := sql.Open("postgres", connectionString)
 
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to open SQLite database")
+		log.Error().Err(err).Msg("Failed to open Postgres database")
 		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Error().Err(err).Msg("Failed to ping SQLite database")
+		log.Error().Err(err).Msg("Failed to ping Postgres database")
 		return nil, err
 	}
 
-	storage := &SQLiteStorage{db: db}
+	storage := &PostgresStorage{db: db}
 
 	if err := storage.initialize(); err != nil {
 		db.Close()
@@ -37,12 +36,12 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 	return storage, nil
 }
 
-func (s *SQLiteStorage) initialize() error {
+func (s *PostgresStorage) initialize() error {
 	// Create the articles table if it doesn't exist
 	query := `
 	CREATE TABLE IF NOT EXISTS articles (
 		ticker TEXT NOT NULL,
-		data TEXT NOT NULL,
+		data BYTEA NOT NULL,
 		expiration TIMESTAMP NOT NULL,
 		created_at TIMESTAMP NOT NULL,
 		PRIMARY KEY (ticker)
@@ -58,19 +57,14 @@ func (s *SQLiteStorage) initialize() error {
 	return nil
 }
 
-func (s *SQLiteStorage) SaveArticles(ctx context.Context, ticker string, articles []news.Article, expiration time.Time) error {
-
-	data, err := json.Marshal(articles)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to marshal articles")
-		return err
-	}
-
+func (s *PostgresStorage) SaveArticles(ctx context.Context, ticker string, articles []byte, expiration time.Time) error {
 	query := `
-	INSERT OR REPLACE INTO articles (ticker, data, expiration, created_at)
-	VALUES (?, ?, ?, ?)
+	INSERT INTO articles (ticker, data, expiration, created_at)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT(ticker)
+	DO UPDATE SET data = $2, expiration = $3, created_at = $4
 	`
-	_, err = s.db.ExecContext(ctx, query, ticker, data, expiration, time.Now())
+	_, err := s.db.ExecContext(ctx, query, ticker, articles, expiration, time.Now())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to save articles")
 		return err
@@ -80,15 +74,14 @@ func (s *SQLiteStorage) SaveArticles(ctx context.Context, ticker string, article
 	return nil
 }
 
-func (s *SQLiteStorage) GetArticles(ctx context.Context, ticker string) ([]news.Article, time.Time, bool, error) {
+func (s *PostgresStorage) GetArticles(ctx context.Context, ticker string) ([]byte, time.Time, bool, error) {
 	query := `
-	SELECT data, expiration 
-	FROM articles 
-	WHERE ticker = ?
+	SELECT data, expiration FROM articles 
+	WHERE ticker = $1 AND expiration > $2
 	`
 	row := s.db.QueryRowContext(ctx, query, ticker)
 
-	var data string
+	var data []byte
 	var expiration time.Time
 
 	err := row.Scan(&data, &expiration)
@@ -101,22 +94,12 @@ func (s *SQLiteStorage) GetArticles(ctx context.Context, ticker string) ([]news.
 		return nil, time.Time{}, false, err
 	}
 
-	var articles []news.Article
-	err = json.Unmarshal([]byte(data), &articles)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to unmarshal articles")
-		return nil, time.Time{}, false, err
-	}
-
 	log.Debug().Str("ticker", ticker).Msg("Retrieved articles from SQLite storage")
-	return articles, expiration, true, nil
+	return data, expiration, true, nil
 }
 
-func (s *SQLiteStorage) DeleteExpired(ctx context.Context) error {
-	query := `
-	DELETE FROM articles 
-	WHERE expiration < ?
-	`
+func (s *PostgresStorage) DeleteExpired(ctx context.Context) error {
+	query := `DELETE FROM articles WHERE expiration <= $1`
 
 	result, err := s.db.ExecContext(ctx, query, time.Now())
 	if err != nil {
@@ -131,13 +114,13 @@ func (s *SQLiteStorage) DeleteExpired(ctx context.Context) error {
 	}
 
 	if count > 0 {
-		log.Info().Int64("count", count).Msg("Deleted expired articles from SQLite storage")
+		log.Info().Int64("count", count).Msg("Deleted expired articles from Postgres storage")
 	}
 
 	return nil
 }
 
-func (s *SQLiteStorage) Close() error {
-	log.Info().Msg("Closing SQLite storage")
+func (s *PostgresStorage) Close() error {
+	log.Info().Msg("Closing PostgreSQL database connection")
 	return s.db.Close()
 }
